@@ -2,7 +2,7 @@ resource "aws_instance" "k8s_master" {
   ami                    = var.ami_id
   instance_type          = var.master_instance_type
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
-  key_name               = aws_key_pair.k8s-key.key_name
+  key_name               = "ci-cd-key"
 
   # Tags for Ansible Dynamic Inventory mapping
   tags = {
