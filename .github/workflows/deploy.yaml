@@ -1,0 +1,29 @@
+name: Deploy infra to AWS
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    terraform:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: 1.9.0
+
+            - name: Terraform init
+              run: terraform init
+              working-directory: terraform
+
+            - name: Terraform plan
+              run: terraform plan
+              working-directory: terraform
+
+            - name: Terraform apply
+              run: terraform apply -auto-approve
+              working-directory: terraform
