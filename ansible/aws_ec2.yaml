@@ -1,0 +1,16 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1 # Change this if your Terraform script deployed to a different region
+
+# How Ansible should group your instances based on AWS Tags
+keyed_groups:
+  - key: tags.Role
+    prefix: aws_role
+
+# This tells Ansible to connect using the instance's Public IP address
+hostnames:
+  - ip-address
+
+compose:
+  ansible_user: "'ubuntu'"
+  ansible_ssh_private_key_file: "'/home/borhan/.ssh/k8s-key.pem'"
