@@ -7,6 +7,9 @@ on:
 jobs:
     terraform:
         runs-on: ubuntu-latest
+        permissions:
+          id-token: write   # Required for OIDC authentication
+          contents: read    # Required to checkout the code
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -16,8 +19,18 @@ jobs:
               with:
                   terraform_version: 1.9.0
 
+            # setting up OIDC
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+                  aws-region: us-east-1
+
             - name: Terraform init
-              run: terraform init
+              run: |
+                terraform init \
+                  -backend-config="bucket=${{ secrets.BACKEND_BUCKET_NAME }}" \
+                  -backend-config="key=${{ secrets.BACKEND_STATE_KEY }}"
               working-directory: terraform
 
             - name: Terraform plan
