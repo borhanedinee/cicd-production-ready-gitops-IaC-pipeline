@@ -170,28 +170,33 @@
         name: helm
         classic: yes
 
+    - name: Install kubernetes.core collection (provides the helm module)
+      command: ansible-galaxy collection install kubernetes.core
+      changed_when: false
+      failed_when: false
+
     - name: Create namespace for monitoring
-      command: kubectl create namespace monitoring
-      register: ns_create
-      failed_when: false
-      changed_when: "'created' in ns_create.stdout"
+      kubernetes.core.k8s:
+        name: monitoring
+        api_version: v1
+        kind: Namespace
+        state: present
 
-    - name: Add Prometheus community Helm repository
-      command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-      changed_when: true
-      failed_when: false
-
-    - name: Update Helm repository cache
-      command: helm repo update
-      changed_when: true
-      failed_when: false
-
-    - name: Install kube-prometheus-stack Helm chart
-      command: >
-        helm upgrade --install prometheus prometheus-community/kube-prometheus-stack 
-        --namespace monitoring 
-        --set prometheus.service.type=NodePort 
-        --set prometheus.service.nodePort=30090
-        --set grafana.service.type=NodePort 
-        --set grafana.service.nodePort=30091
-      changed_when: true
+    - name: Deploy kube-prometheus-stack via Helm module
+      kubernetes.core.helm:
+        name: prometheus
+        chart_ref: prometheus-community/kube-prometheus-stack
+        chart_repo_url: https://prometheus-community.github.io/helm-charts
+        release_namespace: monitoring
+        create_namespace: false
+        wait: true
+        timeout: "10m0s"
+        values:
+          prometheus:
+            service:
+              type: NodePort
+              nodePort: 30090
+          grafana:
+            service:
+              type: NodePort
+              nodePort: 30091

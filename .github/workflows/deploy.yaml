@@ -64,8 +64,9 @@ jobs:
 
       - name: Setup Ansible
         run: |
-          pip install ansible boto3 botocore
-          ansible-galaxy collection install amazon.aws
+          pip install ansible boto3 botocore openshift kubernetes
+          ansible-galaxy collection install amazon.aws kubernetes.core
+
 
       - name: Create SSH Private Key
         run: |
