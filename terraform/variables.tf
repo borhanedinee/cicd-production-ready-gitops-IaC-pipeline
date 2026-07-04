@@ -19,7 +19,7 @@ variable "master_instance_type" {
 
 variable "worker_instance_type" {
   type        = string
-  default     = "t3.micro"
+  default     = "t3.medium"
   description = "Instance type for the Kubernetes worker nodes"
 }
 
