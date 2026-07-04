@@ -171,11 +171,10 @@
         classic: yes
 
     - name: Create namespace for monitoring
-      kubernetes.core.k8s:
-        name: monitoring
-        api_version: v1
-        kind: Namespace
-        state: present
+      command: kubectl create namespace monitoring
+      register: ns_create
+      failed_when: false
+      changed_when: "'created' in ns_create.stdout"
 
     - name: Add grafana helm
       command: helm repo add grafana-community https://grafana-community.github.io/helm-charts
