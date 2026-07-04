@@ -170,6 +170,13 @@
         name: helm
         classic: yes
 
+    - name: Install Python dependencies for kubernetes.core modules on master
+      pip:
+        name:
+          - kubernetes
+          - PyYAML
+        state: present
+
     - name: Install kubernetes.core collection (provides the helm module)
       command: ansible-galaxy collection install kubernetes.core
       changed_when: false
