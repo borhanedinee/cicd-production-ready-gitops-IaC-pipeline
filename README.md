@@ -14,11 +14,15 @@ graph TD
     B -->|3. Terraform Apply| D[AWS EC2 / SG]
     B -->|4. Dynamic Inventory| E[Ansible Configures Nodes]
     D -->|K8s Master & Workers| F[Running K8s Cluster]
+    E -->|Install Argo CD| G[Argo CD]
+    G -->|Watch Apps Repo| H[k8s-setup-argocd]
+    H -->|Sync & Deploy| I[Prometheus & Grafana]
 ```
 
 * **Infrastructure as Code:** [terraform/](file:///c:/Users/Borhan/Desktop/study/gitops/ci-ci-infra-as-code/terraform) provisions the security groups and EC2 instances.
-* **Configuration Management:** [ansible/](file:///c:/Users/Borhan/Desktop/study/gitops/ci-ci-infra-as-code/ansible) prepares all nodes, installs container runtimes (containerd), initializes the master node, and joins the worker nodes.
+* **Configuration Management:** [ansible/](file:///c:/Users/Borhan/Desktop/study/gitops/ci-ci-infra-as-code/ansible) prepares all nodes, installs container runtimes (containerd), initializes the master node, joins the worker nodes, and installs **Argo CD**.
 * **GitOps CI/CD:** [.github/workflows/deploy.yaml](file:///c:/Users/Borhan/Desktop/study/gitops/ci-ci-infra-as-code/.github/workflows/deploy.yaml) connects AWS and GitHub via secure OpenID Connect (OIDC) to run the full build on every push.
+* **Continuous Deployment (Two-Repo Architecture):** A separate application repository holds the Helm charts and manifests for Prometheus and Grafana. Argo CD continuously watches this repo and synchronizes the cluster state automatically, cleanly separating infrastructure provisioning from application deployment.
 
 ---
 
@@ -81,11 +85,14 @@ The entire sequential pipeline runs successfully. The Ansible job automatically 
   <img src="results/ci-cd-pipeline-success.png" alt="CI/CD Pipeline Success" width="90%" />
 </p>
 
-### 2. Ansible Configuring Nodes
-Ansible automatically installs docker/containerd, configures `kubeadm`/`kubectl`, and registers the workers.
+### 2. Terraform & Ansible Job Execution
+Terraform successfully provisions the infrastructure and stores state in S3. Ansible automatically connects via dynamic inventory, installs dependencies, configures `kubeadm`/`kubectl`, and registers the workers.
 
 <p align="center">
-  <img src="results/ansible-job-after-terraform.png" alt="Ansible Job Executing" width="90%" />
+  <img src="results/terraform-job-success.png" alt="Terraform Job Success" width="90%" />
+</p>
+<p align="center">
+  <img src="results/ansible-job-success.png" alt="Ansible Job Success" width="90%" />
 </p>
 
 ### 3. Provisioned AWS Instances
@@ -100,6 +107,26 @@ The final output showing the master and worker nodes successfully clustered and 
 
 <p align="center">
   <img src="results/k8s-cluster-setup-successfully.png" alt="Kubernetes Cluster Active" width="90%" />
+</p>
+
+### 5. GitOps Continuous Deployment (Argo CD)
+Argo CD was configured to watch a separate applications repository (`k8s-setup-argocd`). The UI shows successful synchronization of the monitoring stack.
+
+<p align="center">
+  <img src="results/argocdcd-repo-gitops.png" alt="Argo CD Syncing from Git" width="90%" />
+</p>
+<p align="center">
+  <img src="results/argo-cd-setup-success.png" alt="Argo CD UI" width="90%" />
+</p>
+
+### 6. Monitoring Stack Live
+Prometheus and Grafana were successfully deployed by Argo CD and exposed via NodePort, running stably on the cluster.
+
+<p align="center">
+  <img src="results/grafana-setup-success.png" alt="Grafana UI" width="90%" />
+</p>
+<p align="center">
+  <img src="results/prometheus-setup-success.png" alt="Prometheus UI" width="90%" />
 </p>
 
 ---
