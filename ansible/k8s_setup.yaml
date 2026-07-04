@@ -164,29 +164,3 @@
         kubectl patch svc argocd-server -n argocd -p 
         '{"spec": {"type": "NodePort", "ports": [{"name": "http", "port": 80, "targetPort": 8080, "nodePort": 30080}, {"name": "https", "port": 443, "targetPort": 8080, "nodePort": 30443}]}}'
       changed_when: true
-
-    - name: Install Helm via snap
-      snap:
-        name: helm
-        classic: yes
-
-    - name: Create namespace for monitoring
-      command: kubectl create namespace monitoring
-      register: ns_create
-      failed_when: false
-      changed_when: "'created' in ns_create.stdout"
-
-    - name: Add grafana helm
-      command: helm repo add grafana-community https://grafana-community.github.io/helm-charts
-
-    - name: Add prometheus helm
-      command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-
-    - name: Upgrade helm charts
-      command: helm repo update
-
-    - name: Install grafana
-      command: helm install my-grafana grafana-community/grafana --namespace monitoring
-
-    - name: Install prometheus
-      command: helm install my-prometheus prometheus-community/prometheus --namespace monitoring
