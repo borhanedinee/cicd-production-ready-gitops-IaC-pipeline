@@ -31,7 +31,7 @@
     - name: Remove swap from /etc/fstab to persist reboot
       replace:
         path: /etc/fstab
-        regexp: '^([^#].*swap.*)$'
+        regexp: "^([^#].*swap.*)$"
         replace: '# \1'
 
     - name: Enable kernel modules for container runtime
@@ -49,21 +49,21 @@
         state: present
         sysctl_set: yes
       loop:
-        - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
-        - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
-        - { name: 'net.ipv4.ip_forward', value: '1' }
+        - { name: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { name: "net.ipv4.ip_forward", value: "1" }
 
     - name: Create directory for Kubernetes apt keyring
       file:
         path: /etc/apt/keyrings
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Download Kubernetes apt repository signing key
       get_url:
         url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
         dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
-        mode: '0644'
+        mode: "0644"
 
     - name: Add Kubernetes apt repository
       apt_repository:
@@ -102,20 +102,20 @@
       changed_when: "'Your Kubernetes control-plane has initialized successfully!' in kubeadm_init.stdout"
       # Prevent running it again if already initialized
       args:
-        creates: /etc/kubernetes/admin.conf 
+        creates: /etc/kubernetes/admin.conf
 
     - name: Create .kube directory for local user setup
       file:
         path: $HOME/.kube
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Copy admin.conf to user's kube config
       copy:
         src: /etc/kubernetes/admin.conf
         dest: $HOME/.kube/config
         remote_src: yes
-        mode: '0600'
+        mode: "0600"
 
     - name: Install Flannel CNI network overlay
       command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
@@ -129,6 +129,54 @@
     - name: Set join command as a global fact
       set_fact:
         join_command: "{{ join_command_raw.stdout }}"
+
+    - name: Create namespace for Argo CD
+      command: kubectl create namespace argocd
+      register: ns_create
+      failed_when: false
+      changed_when: "'created' in ns_create.stdout"
+
+    - name: Apply Argo CD installation manifests
+      command: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      changed_when: true
+
+    - name: Expose Argo CD Server via NodePort
+      command: >
+        kubectl patch svc argocd-server -n argocd -p 
+        '{"spec": {"type": "NodePort", "ports": [{"name": "http", "port": 80, "targetPort": 8080, "nodePort": 30080}, {"name": "https", "port": 443, "targetPort": 8080, "nodePort": 30443}]}}'
+      changed_when: true
+
+    - name: Install Helm via snap
+      snap:
+        name: helm
+        classic: yes
+
+    - name: Create namespace for monitoring
+      command: kubectl create namespace monitoring
+      register: ns_create
+      failed_when: false
+      changed_when: "'created' in ns_create.stdout"
+
+    - name: Add Prometheus community Helm repository
+      command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      changed_when: true
+      failed_when: false
+
+    - name: Update Helm repository cache
+      command: helm repo update
+      changed_when: true
+      failed_when: false
+
+    - name: Install kube-prometheus-stack Helm chart
+      command: >
+        helm upgrade --install prometheus prometheus-community/kube-prometheus-stack 
+        --namespace monitoring 
+        --set prometheus.service.type=NodePort 
+        --set prometheus.service.nodePort=30090
+        --set grafana.service.type=NodePort 
+        --set grafana.service.nodePort=30091
+      changed_when: true
+
 
 # =================================================================
 # STEP 3: WORKERS JOIN THE CLUSTER (Run ONLY on Workers)
